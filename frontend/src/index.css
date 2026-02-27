@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Force light mode on all form elements */
+input, select, textarea {
+  background-color: white !important;
+  color: #1f2937 !important;
+}
+
+input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Force light mode on the page */
+html, body, #root {
+  background-color: #f9fafb;
+  color: #111827;
+  color-scheme: light;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+}
