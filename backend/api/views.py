@@ -5,6 +5,13 @@ from api.filters import TaskFilter
 from .models import Contact, Task
 from api.serializers import ContactSerializer, TaskSerializer
 from django.db.models import Count, Q
+from rest_framework.pagination import PageNumberPagination
+
+
+class TaskPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.annotate(
@@ -20,7 +27,8 @@ class ContactViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
+    queryset = Task.objects.select_related('contact').all()
     serializer_class = TaskSerializer
     filterset_class = TaskFilter
+    pagination_class = TaskPagination
     ordering = ['-created_at']

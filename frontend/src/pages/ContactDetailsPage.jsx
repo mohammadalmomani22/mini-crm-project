@@ -35,7 +35,7 @@ export default function ContactDetailsPage({ onLogout }) {
         if (!res.ok) throw new Error();
         return res.json();
       }),
-      authFetch(`/api/tasks/?contact_id=${id}`).then(res => {
+      authFetch(`/api/tasks/?contact_id=${id}&page_size=100`).then(res => {
         if (!res.ok) throw new Error();
         return res.json();
       })

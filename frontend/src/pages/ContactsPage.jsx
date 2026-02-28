@@ -85,6 +85,13 @@ function handleDeleteContact(id) {
       .then(res => {
         if (res.ok || res.status === 204) {
           setContactsData(contactsData.filter(c => c.id !== deleteConfirm));
+          // Recalculate total pages
+          const newCount = contactsData.length - 1;
+          setTotalPages(Math.ceil(newCount / 10) || 1);
+          // If current page is now empty, go back one page
+          if (newCount > 0 && newCount <= (currentPage - 1) * 10) {
+            setCurrentPage(p => Math.max(1, p - 1));
+          }
           toast.success('Contact deleted');
         }
       })
