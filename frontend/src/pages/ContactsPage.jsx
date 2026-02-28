@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function ContactsPage() {
   const [contactsData, setContactsData] = useState([]);
@@ -13,7 +14,6 @@ export default function ContactsPage() {
     full_name: '', phone: '', email: '', status: 'active'
   });
 
-  // Fetch contacts whenever search, filter, or ordering changes
   useEffect(() => {
     setIsLoading(true);
     const params = new URLSearchParams();
@@ -29,10 +29,12 @@ export default function ContactsPage() {
       .then(data => {
         setContactsData(data.results ? data.results : data);
         setIsLoading(false);
+        setIsError(false);
       })
       .catch(() => {
         setIsError(true);
         setIsLoading(false);
+        toast.error('Failed to connect to server');
       });
   }, [searchTerm, statusFilter, ordering]);
 
@@ -48,15 +50,21 @@ export default function ContactsPage() {
       body: JSON.stringify(formData)
     })
       .then(res => {
-        if (!res.ok) throw new Error();
+        if (!res.ok) return res.json().then(err => { throw err; });
         return res.json();
       })
       .then(createdContact => {
         setContactsData([createdContact, ...contactsData]);
         setFormData({ full_name: '', phone: '', email: '', status: 'active' });
         setShowAddForm(false);
+        toast.success('Contact created successfully');
       })
-      .catch(() => alert('Failed to add contact. Check that name is at least 3 characters.'));
+      .catch((err) => {
+        if (err.full_name) toast.error(`Name: ${err.full_name[0]}`);
+        else if (err.phone) toast.error(`Phone: ${err.phone[0]}`);
+        else if (err.email) toast.error(`Email: ${err.email[0]}`);
+        else toast.error('Failed to add contact');
+      });
   }
 
   function handleDeleteContact(id) {
@@ -65,17 +73,22 @@ export default function ContactsPage() {
       .then(res => {
         if (res.ok || res.status === 204) {
           setContactsData(contactsData.filter(c => c.id !== id));
+          toast.success('Contact deleted');
         }
-      });
+      })
+      .catch(() => toast.error('Failed to delete contact'));
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-5">
         <div className="max-w-full px-12 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">EXOS CRM</h1>
+          <div className="flex items-center gap-3">
+            <img src="/EXOS-logo.png" alt="EXOS" className="h-8" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Mini CRM</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage your contacts and tasks</p>
+            </div>
           </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -87,33 +100,36 @@ export default function ContactsPage() {
       </div>
 
       <div className="max-w-full px-12 py-6">
-        {/* Add Contact Form */}
         {showAddForm && (
           <form onSubmit={handleAddContact} className="bg-white border border-blue-200 rounded-lg p-6 mb-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-800 mb-4">New Contact</h2>
             <div className="grid grid-cols-4 gap-4 mb-4">
-              <input
-                type="text" name="full_name" placeholder="Full Name *" required
-                value={formData.full_name} onChange={handleFormChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <input
-                type="text" name="phone" placeholder="Phone"
-                value={formData.phone} onChange={handleFormChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <input
-                type="email" name="email" placeholder="Email"
-                value={formData.email} onChange={handleFormChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <select
-                name="status" value={formData.status} onChange={handleFormChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Full Name *</label>
+                <input type="text" name="full_name" placeholder="Min 3 characters" required
+                  value={formData.full_name} onChange={handleFormChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Phone</label>
+                <input type="text" name="phone" placeholder="+962..."
+                  value={formData.phone} onChange={handleFormChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Email</label>
+                <input type="email" name="email" placeholder="email@example.com"
+                  value={formData.email} onChange={handleFormChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Status</label>
+                <select name="status" value={formData.status} onChange={handleFormChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
             </div>
             <button type="submit" className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700 transition">
               Save Contact
@@ -121,31 +137,21 @@ export default function ContactsPage() {
           </form>
         )}
 
-        {/* Filters */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 shadow-sm">
           <div className="flex gap-4 items-center">
             <div className="flex-1">
-              <input
-                type="text" placeholder="Search by name, phone, or email..."
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <input type="text" placeholder="Search by name, phone, or email..."
+                className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <select
-              value={ordering}
-              onChange={(e) => setOrdering(e.target.value)}
-              className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <select value={ordering} onChange={(e) => setOrdering(e.target.value)}
+              className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="-created_at">Newest First</option>
               <option value="created_at">Oldest First</option>
               <option value="full_name">Name A-Z</option>
@@ -154,26 +160,22 @@ export default function ContactsPage() {
           </div>
         </div>
 
-        {/* Error State */}
         {isError && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
             Failed to connect to the server. Make sure Django is running.
           </div>
         )}
 
-        {/* Loading State */}
         {isLoading ? (
           <div className="bg-white border border-gray-200 rounded-lg p-12 text-center text-gray-500">
             Loading contacts...
           </div>
         ) : contactsData.length === 0 ? (
-          /* Empty State */
           <div className="bg-white border border-dashed border-gray-300 rounded-lg p-12 text-center">
             <p className="text-gray-500 text-lg">No contacts found</p>
             <p className="text-gray-400 text-sm mt-1">Add your first contact to get started</p>
           </div>
         ) : (
-          /* Contacts Table */
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <table className="min-w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -194,27 +196,15 @@ export default function ContactsPage() {
                     <td className="px-6 py-4 text-gray-600">{contact.email || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        contact.status === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600'
+                        contact.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {contact.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{contact.open_tasks_count || 0}</td>
                     <td className="px-6 py-4 text-right">
-                      <Link
-                        to={`/contacts/${contact.id}`}
-                        className="text-blue-600 hover:text-blue-800 font-semibold mr-4"
-                      >
-                        View
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteContact(contact.id)}
-                        className="text-red-500 hover:text-red-700 font-semibold"
-                      >
-                        Delete
-                      </button>
+                      <Link to={`/contacts/${contact.id}`} className="text-blue-600 hover:text-blue-800 font-semibold mr-4">View</Link>
+                      <button onClick={() => handleDeleteContact(contact.id)} className="text-red-500 hover:text-red-700 font-semibold">Delete</button>
                     </td>
                   </tr>
                 ))}

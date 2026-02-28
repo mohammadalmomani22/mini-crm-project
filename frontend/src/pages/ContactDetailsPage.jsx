@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function ContactDetailsPage() {
   const { id } = useParams();
@@ -10,17 +11,14 @@ export default function ContactDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  // Edit contact state
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     full_name: '', phone: '', email: '', status: 'active'
   });
 
-  // New task state
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'medium' });
 
-  // Task filters
   const [taskStatusFilter, setTaskStatusFilter] = useState('');
   const [taskPriorityFilter, setTaskPriorityFilter] = useState('');
 
@@ -50,10 +48,10 @@ export default function ContactDetailsPage() {
       .catch(() => {
         setIsError(true);
         setIsLoading(false);
+        toast.error('Failed to load contact');
       });
   }, [id]);
 
-  // Edit contact handlers
   function handleEditChange(event) {
     setEditData({ ...editData, [event.target.name]: event.target.value });
   }
@@ -66,28 +64,33 @@ export default function ContactDetailsPage() {
       body: JSON.stringify(editData)
     })
       .then(res => {
-        if (!res.ok) throw new Error();
+        if (!res.ok) return res.json().then(err => { throw err; });
         return res.json();
       })
       .then(updatedContact => {
         setContact(updatedContact);
         setIsEditing(false);
+        toast.success('Contact updated');
       })
-      .catch(() => alert('Failed to update contact.'));
+      .catch((err) => {
+        if (err.full_name) toast.error(`Name: ${err.full_name[0]}`);
+        else if (err.phone) toast.error(`Phone: ${err.phone[0]}`);
+        else toast.error('Failed to update contact');
+      });
   }
 
-  // Delete contact
   function handleDeleteContact() {
     if (!window.confirm('Delete this contact and all their tasks?')) return;
     fetch(`http://127.0.0.1:8000/api/contacts/${id}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
+          toast.success('Contact deleted');
           navigate('/');
         }
-      });
+      })
+      .catch(() => toast.error('Failed to delete contact'));
   }
 
-  // Task handlers
   function handleTaskChange(event) {
     setNewTask({ ...newTask, [event.target.name]: event.target.value });
   }
@@ -106,15 +109,20 @@ export default function ContactDetailsPage() {
       body: JSON.stringify(taskPayload)
     })
       .then(res => {
-        if (!res.ok) throw new Error();
+        if (!res.ok) return res.json().then(err => { throw err; });
         return res.json();
       })
       .then(createdTask => {
         setTasks([createdTask, ...tasks]);
         setNewTask({ title: '', due_date: '', priority: 'medium' });
         setShowTaskForm(false);
+        toast.success('Task added');
       })
-      .catch(() => alert('Failed to add task. Due date cannot be in the past.'));
+      .catch((err) => {
+        if (err.title) toast.error(`Title: ${err.title[0]}`);
+        else if (err.due_date) toast.error(`Due date: ${err.due_date[0]}`);
+        else toast.error('Failed to add task');
+      });
   }
 
   function handleToggleDone(task) {
@@ -129,7 +137,9 @@ export default function ContactDetailsPage() {
       })
       .then(updatedTask => {
         setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
-      });
+        toast.success(updatedTask.is_done ? 'Task completed' : 'Task reopened');
+      })
+      .catch(() => toast.error('Failed to update task'));
   }
 
   function handleDeleteTask(taskId) {
@@ -138,11 +148,12 @@ export default function ContactDetailsPage() {
       .then(res => {
         if (res.ok || res.status === 204) {
           setTasks(tasks.filter(t => t.id !== taskId));
+          toast.success('Task deleted');
         }
-      });
+      })
+      .catch(() => toast.error('Failed to delete task'));
   }
 
-  // Filter tasks client-side (already fetched for this contact)
   const filteredTasks = tasks.filter(task => {
     if (taskStatusFilter === 'done' && !task.is_done) return false;
     if (taskStatusFilter === 'pending' && task.is_done) return false;
@@ -171,23 +182,18 @@ export default function ContactDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-5">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link to="/" className="text-blue-600 hover:text-blue-800 font-semibold">
             &larr; Back to Contacts
           </Link>
           <div className="flex gap-3">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
-            >
+            <button onClick={() => setIsEditing(!isEditing)}
+              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition">
               {isEditing ? 'Cancel' : 'Edit Contact'}
             </button>
-            <button
-              onClick={handleDeleteContact}
-              className="border border-red-300 text-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-50 transition"
-            >
+            <button onClick={handleDeleteContact}
+              className="border border-red-300 text-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-50 transition">
               Delete Contact
             </button>
           </div>
@@ -195,7 +201,6 @@ export default function ContactDetailsPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-8 py-6">
-        {/* Contact Card or Edit Form */}
         {isEditing ? (
           <form onSubmit={handleEditSubmit} className="bg-white border border-yellow-200 rounded-lg p-6 mb-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Edit Contact</h2>
@@ -236,9 +241,7 @@ export default function ContactDetailsPage() {
                 <p className="text-sm text-gray-400 mt-1">Contact ID: {contact.id}</p>
               </div>
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                contact.status === 'active'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-600'
+                contact.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>
                 {contact.status}
               </span>
@@ -260,33 +263,37 @@ export default function ContactDetailsPage() {
           </div>
         )}
 
-        {/* Tasks Section */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">Tasks</h2>
-          <button
-            onClick={() => setShowTaskForm(!showTaskForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
+          <button onClick={() => setShowTaskForm(!showTaskForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
             {showTaskForm ? 'Cancel' : '+ Add Task'}
           </button>
         </div>
 
-        {/* Add Task Form */}
         {showTaskForm && (
           <form onSubmit={handleSubmitTask} className="bg-white border border-blue-200 rounded-lg p-5 mb-6 shadow-sm">
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <input type="text" name="title" placeholder="Task title *" required
-                value={newTask.title} onChange={handleTaskChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="date" name="due_date"
-                value={newTask.due_date} onChange={handleTaskChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <select name="priority" value={newTask.priority} onChange={handleTaskChange}
-                className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Task Title *</label>
+                <input type="text" name="title" placeholder="Min 3 characters" required
+                  value={newTask.title} onChange={handleTaskChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Due Date</label>
+                <input type="date" name="due_date" value={newTask.due_date} onChange={handleTaskChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Priority</label>
+                <select name="priority" value={newTask.priority} onChange={handleTaskChange}
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
             </div>
             <button type="submit" className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700 transition">
               Save Task
@@ -294,7 +301,6 @@ export default function ContactDetailsPage() {
           </form>
         )}
 
-        {/* Task Filters */}
         <div className="flex gap-3 mb-4">
           <select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value)}
             className="border border-gray-300 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -311,7 +317,6 @@ export default function ContactDetailsPage() {
           </select>
         </div>
 
-        {/* Tasks List */}
         {filteredTasks.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-300 rounded-lg p-10 text-center">
             <p className="text-gray-500">No tasks found</p>
@@ -335,25 +340,17 @@ export default function ContactDetailsPage() {
                       {task.priority}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Due: {task.due_date || 'No date'}
-                  </p>
+                  <p className="text-sm text-gray-400 mt-1">Due: {task.due_date || 'No date'}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleToggleDone(task)}
+                  <button onClick={() => handleToggleDone(task)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                      task.is_done
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
+                      task.is_done ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
                     {task.is_done ? 'Completed' : 'Mark Done'}
                   </button>
-                  <button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="text-red-400 hover:text-red-600 text-sm font-semibold"
-                  >
+                  <button onClick={() => handleDeleteTask(task.id)}
+                    className="text-red-400 hover:text-red-600 text-sm font-semibold">
                     Delete
                   </button>
                 </div>
