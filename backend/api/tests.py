@@ -2,14 +2,18 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 from api.models import Contact, Task
+from django.contrib.auth.models import User
+
 
 
 class ContactAPITest(TestCase):
     """Test suite for the Contact API endpoints."""
 
     def setUp(self):
-        """Create a test contact to use across all contact tests."""
+        """Create a test user and contact to use across all contact tests."""
         self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.client.force_authenticate(user=self.user)
         self.contact = Contact.objects.create(
             full_name="Test User",
             phone="+962799000000",
@@ -107,8 +111,10 @@ class TaskAPITest(TestCase):
     """Test suite for the Task API endpoints."""
 
     def setUp(self):
-        """Create a test contact and task to use across all task tests."""
+        """Create a test user, contact and task to use across all task tests."""
         self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.client.force_authenticate(user=self.user)
         self.contact = Contact.objects.create(
             full_name="Task Owner",
             status="active"

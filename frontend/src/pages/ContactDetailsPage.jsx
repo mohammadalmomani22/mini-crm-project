@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { authFetch } from '../api';
 
-export default function ContactDetailsPage() {
+export default function ContactDetailsPage({ onLogout }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -25,11 +26,11 @@ export default function ContactDetailsPage() {
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
-      fetch(`http://127.0.0.1:8000/api/contacts/${id}/`).then(res => {
+      authFetch(`/api/contacts/${id}/`).then(res => {
         if (!res.ok) throw new Error();
         return res.json();
       }),
-      fetch(`http://127.0.0.1:8000/api/tasks/?contact_id=${id}`).then(res => {
+      authFetch(`/api/tasks/?contact_id=${id}`).then(res => {
         if (!res.ok) throw new Error();
         return res.json();
       })
@@ -58,9 +59,8 @@ export default function ContactDetailsPage() {
 
   function handleEditSubmit(event) {
     event.preventDefault();
-    fetch(`http://127.0.0.1:8000/api/contacts/${id}/`, {
+    authFetch(`/api/contacts/${id}/`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editData)
     })
       .then(res => {
@@ -81,7 +81,7 @@ export default function ContactDetailsPage() {
 
   function handleDeleteContact() {
     if (!window.confirm('Delete this contact and all their tasks?')) return;
-    fetch(`http://127.0.0.1:8000/api/contacts/${id}/`, { method: 'DELETE' })
+    authFetch(`/api/contacts/${id}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
           toast.success('Contact deleted');
@@ -103,9 +103,8 @@ export default function ContactDetailsPage() {
       due_date: newTask.due_date === '' ? null : newTask.due_date
     };
 
-    fetch('http://127.0.0.1:8000/api/tasks/', {
+    authFetch('/api/tasks/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(taskPayload)
     })
       .then(res => {
@@ -126,9 +125,8 @@ export default function ContactDetailsPage() {
   }
 
   function handleToggleDone(task) {
-    fetch(`http://127.0.0.1:8000/api/tasks/${task.id}/`, {
+    authFetch(`/api/tasks/${task.id}/`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_done: !task.is_done })
     })
       .then(res => {
@@ -144,7 +142,7 @@ export default function ContactDetailsPage() {
 
   function handleDeleteTask(taskId) {
     if (!window.confirm('Delete this task?')) return;
-    fetch(`http://127.0.0.1:8000/api/tasks/${taskId}/`, { method: 'DELETE' })
+    authFetch(`/api/tasks/${taskId}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
           setTasks(tasks.filter(t => t.id !== taskId));

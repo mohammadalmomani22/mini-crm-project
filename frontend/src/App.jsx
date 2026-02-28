@@ -1,10 +1,24 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ContactsPage from './pages/ContactsPage';
 import ContactDetailsPage from './pages/ContactDetailsPage';
+import LoginPage from './pages/LoginPage';
 import './index.css';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
+
+  function handleLogin() {
+    setIsLoggedIn(true);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setIsLoggedIn(false);
+  }
+
   return (
     <BrowserRouter>
       <Toaster position="top-center" toastOptions={{
@@ -14,8 +28,17 @@ function App() {
         error: { iconTheme: { primary: '#dc2626', secondary: '#fff' } },
       }} />
       <Routes>
-        <Route path="/" element={<ContactsPage />} />
-        <Route path="/contacts/:id" element={<ContactDetailsPage />} />
+        {!isLoggedIn ? (
+          <>
+            <Route path="*" element={<LoginPage onLogin={handleLogin} />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<ContactsPage onLogout={handleLogout} />} />
+            <Route path="/contacts/:id" element={<ContactDetailsPage onLogout={handleLogout} />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
   );

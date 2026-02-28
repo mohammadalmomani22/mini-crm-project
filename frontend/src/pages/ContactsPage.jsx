@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { authFetch } from '../api';
 
-export default function ContactsPage() {
+export default function ContactsPage({ onLogout }) {
   const [contactsData, setContactsData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -12,7 +13,7 @@ export default function ContactsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '', phone: '', email: '', status: 'active'
-  })
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -24,7 +25,7 @@ export default function ContactsPage() {
     if (ordering) params.append('ordering', ordering);
     params.append('page', currentPage);
 
-    fetch(`http://127.0.0.1:8000/api/contacts/?${params}`)
+    authFetch(`/api/contacts/?${params}`)
       .then(res => {
         if (!res.ok) throw new Error();
         return res.json();
@@ -50,9 +51,8 @@ export default function ContactsPage() {
 
   function handleAddContact(event) {
     event.preventDefault();
-    fetch('http://127.0.0.1:8000/api/contacts/', {
+    authFetch('/api/contacts/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     })
       .then(res => {
@@ -75,7 +75,7 @@ export default function ContactsPage() {
 
   function handleDeleteContact(id) {
     if (!window.confirm('Are you sure you want to delete this contact and all their tasks?')) return;
-    fetch(`http://127.0.0.1:8000/api/contacts/${id}/`, { method: 'DELETE' })
+    authFetch(`/api/contacts/${id}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
           setContactsData(contactsData.filter(c => c.id !== id));
@@ -96,12 +96,20 @@ export default function ContactsPage() {
               <p className="text-sm text-gray-500 mt-1">Manage your contacts and tasks</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            {showAddForm ? 'Cancel' : '+ New Contact'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onLogout}
+              className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
+            >
+              Logout
+            </button>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              {showAddForm ? 'Cancel' : '+ New Contact'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -218,26 +226,26 @@ export default function ContactsPage() {
             </table>
 
             {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-200">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
-              >
-                Next
-              </button>
-            </div>
-          )}
+              <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-200">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
