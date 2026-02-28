@@ -33,7 +33,7 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8 w-full max-w-md">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 md:p-8 w-full max-w-md mx-4 md:mx-0">
         <div className="text-center mb-6">
           <img src="/EXOS-logo.png" alt="EXOS" className="h-10 mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-gray-900">Mini CRM</h1>

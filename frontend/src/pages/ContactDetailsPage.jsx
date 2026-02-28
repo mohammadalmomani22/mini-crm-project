@@ -201,9 +201,9 @@ export default function ContactDetailsPage({ onLogout }) {
     <div className="min-h-screen bg-gray-50">
       <Navbar onLogout={onLogout} />
 
-      <div className="max-w-5xl mx-auto px-8 py-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6">
         {/* Page-specific actions */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <Link to="/" className="text-blue-600 hover:text-blue-800 font-semibold">
             &larr; Back to Contacts
           </Link>
@@ -222,7 +222,7 @@ export default function ContactDetailsPage({ onLogout }) {
         {isEditing ? (
           <form onSubmit={handleEditSubmit} className="bg-white border border-yellow-200 rounded-lg p-6 mb-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Edit Contact</h2>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1">Full Name</label>
                 <input type="text" name="full_name" required value={editData.full_name} onChange={handleEditChange}
@@ -264,7 +264,7 @@ export default function ContactDetailsPage({ onLogout }) {
                 {contact.status}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-6 border-t border-gray-100 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-gray-100 pt-4">
               <div>
                 <p className="text-xs text-gray-400 uppercase font-semibold tracking-wider">Email</p>
                 <p className="text-gray-800 mt-1">{contact.email || '—'}</p>
@@ -291,7 +291,7 @@ export default function ContactDetailsPage({ onLogout }) {
 
         {showTaskForm && (
           <form onSubmit={handleSubmitTask} className="bg-white border border-blue-200 rounded-lg p-5 mb-6 shadow-sm">
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1">Task Title *</label>
                 <input type="text" name="title" placeholder="Min 3 characters" required
