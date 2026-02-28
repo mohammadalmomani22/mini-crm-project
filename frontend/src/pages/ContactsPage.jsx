@@ -12,7 +12,9 @@ export default function ContactsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '', phone: '', email: '', status: 'active'
-  });
+  })
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     setIsLoading(true);
@@ -20,6 +22,7 @@ export default function ContactsPage() {
     if (searchTerm) params.append('search', searchTerm);
     if (statusFilter) params.append('status', statusFilter);
     if (ordering) params.append('ordering', ordering);
+    params.append('page', currentPage);
 
     fetch(`http://127.0.0.1:8000/api/contacts/?${params}`)
       .then(res => {
@@ -28,6 +31,9 @@ export default function ContactsPage() {
       })
       .then(data => {
         setContactsData(data.results ? data.results : data);
+        if (data.count) {
+          setTotalPages(Math.ceil(data.count / 10));
+        }
         setIsLoading(false);
         setIsError(false);
       })
@@ -36,7 +42,7 @@ export default function ContactsPage() {
         setIsLoading(false);
         toast.error('Failed to connect to server');
       });
-  }, [searchTerm, statusFilter, ordering]);
+  }, [searchTerm, statusFilter, ordering, currentPage]);
 
   function handleFormChange(event) {
     setFormData({ ...formData, [event.target.name]: event.target.value });
@@ -142,15 +148,15 @@ export default function ContactsPage() {
             <div className="flex-1">
               <input type="text" placeholder="Search by name, phone, or email..."
                 className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <select value={ordering} onChange={(e) => setOrdering(e.target.value)}
+            <select value={ordering} onChange={(e) => { setOrdering(e.target.value); setCurrentPage(1); }}
               className="border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="-created_at">Newest First</option>
               <option value="created_at">Oldest First</option>
@@ -210,6 +216,28 @@ export default function ContactsPage() {
                 ))}
               </tbody>
             </table>
+
+            {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-200">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition"
+              >
+                Next
+              </button>
+            </div>
+          )}
           </div>
         )}
       </div>
