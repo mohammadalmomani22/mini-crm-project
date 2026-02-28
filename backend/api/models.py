@@ -17,6 +17,20 @@ class Contact(models.Model):
     status = models.CharField(max_length=20, choices=StatusChoice.choices, default=StatusChoice.ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['email'],
+                condition=~models.Q(email=''),
+                name='unique_email_if_provided'
+            ),
+            models.UniqueConstraint(
+                fields=['phone'],
+                condition=~models.Q(phone=''),
+                name='unique_phone_if_provided'
+            ),
+        ]
+        
     def __str__(self):
         return self.full_name
     
@@ -27,6 +41,14 @@ class Task(models.Model):
     priority = models.CharField(max_length=20, choices=PriorityChoice.choices, default=PriorityChoice.MEDIUM)
     is_done = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['contact', 'title'],
+                name='unique_task_title_per_contact'
+            ),
+        ]
 
     def __str__(self):
         return self.title

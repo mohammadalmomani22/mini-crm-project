@@ -47,10 +47,11 @@ class Command(BaseCommand):
 
         for contact in contacts:
             num_tasks = random.randint(1, 4)
-            for _ in range(num_tasks):
+            chosen_titles = random.sample(tasks_titles, num_tasks)
+            for title in chosen_titles:
                 Task.objects.create(
                     contact=contact,
-                    title=random.choice(tasks_titles),
+                    title=title,
                     due_date=date.today() + timedelta(days=random.randint(1, 60)),
                     priority=random.choice(priorities),
                     is_done=random.choice([True, False, False, False]),

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { authFetch } from '../api';
+import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ContactsPage({ onLogout }) {
   const [contactsData, setContactsData] = useState([]);
@@ -16,6 +18,7 @@ export default function ContactsPage({ onLogout }) {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -73,47 +76,38 @@ export default function ContactsPage({ onLogout }) {
       });
   }
 
-  function handleDeleteContact(id) {
-    if (!window.confirm('Are you sure you want to delete this contact and all their tasks?')) return;
-    authFetch(`/api/contacts/${id}/`, { method: 'DELETE' })
+function handleDeleteContact(id) {
+    setDeleteConfirm(id);
+  }
+
+  function confirmDelete() {
+    authFetch(`/api/contacts/${deleteConfirm}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
-          setContactsData(contactsData.filter(c => c.id !== id));
+          setContactsData(contactsData.filter(c => c.id !== deleteConfirm));
           toast.success('Contact deleted');
         }
       })
-      .catch(() => toast.error('Failed to delete contact'));
+      .catch(() => toast.error('Failed to delete contact'))
+      .finally(() => setDeleteConfirm(null));
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-8 py-5">
-        <div className="max-w-full px-12 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="/EXOS-logo.png" alt="EXOS" className="h-8" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Mini CRM</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage your contacts and tasks</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onLogout}
-              className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
-            >
-              Logout
-            </button>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-            >
-              {showAddForm ? 'Cancel' : '+ New Contact'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <Navbar onLogout={onLogout} />
 
       <div className="max-w-full px-12 py-6">
+        {/* Page header with action button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-800">Contacts</h2>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            {showAddForm ? 'Cancel' : '+ New Contact'}
+          </button>
+        </div>
+
         {showAddForm && (
           <form onSubmit={handleAddContact} className="bg-white border border-blue-200 rounded-lg p-6 mb-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-800 mb-4">New Contact</h2>
@@ -249,6 +243,13 @@ export default function ContactsPage({ onLogout }) {
           </div>
         )}
       </div>
+      {deleteConfirm && (
+          <ConfirmModal
+            message="This will permanently delete the contact and all their tasks."
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteConfirm(null)}
+          />
+        )}
     </div>
   );
 }

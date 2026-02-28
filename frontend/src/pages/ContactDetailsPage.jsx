@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { authFetch } from '../api';
+import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ContactDetailsPage({ onLogout }) {
   const { id } = useParams();
@@ -22,6 +24,9 @@ export default function ContactDetailsPage({ onLogout }) {
 
   const [taskStatusFilter, setTaskStatusFilter] = useState('');
   const [taskPriorityFilter, setTaskPriorityFilter] = useState('');
+
+  const [deleteContactConfirm, setDeleteContactConfirm] = useState(false);
+  const [deleteTaskConfirm, setDeleteTaskConfirm] = useState(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -80,7 +85,10 @@ export default function ContactDetailsPage({ onLogout }) {
   }
 
   function handleDeleteContact() {
-    if (!window.confirm('Delete this contact and all their tasks?')) return;
+    setDeleteContactConfirm(true);
+  }
+
+  function confirmDeleteContact() {
     authFetch(`/api/contacts/${id}/`, { method: 'DELETE' })
       .then(res => {
         if (res.ok || res.status === 204) {
@@ -88,9 +96,25 @@ export default function ContactDetailsPage({ onLogout }) {
           navigate('/');
         }
       })
-      .catch(() => toast.error('Failed to delete contact'));
+      .catch(() => toast.error('Failed to delete contact'))
+      .finally(() => setDeleteContactConfirm(false));
   }
 
+  function handleDeleteTask(taskId) {
+    setDeleteTaskConfirm(taskId);
+  }
+
+  function confirmDeleteTask() {
+    authFetch(`/api/tasks/${deleteTaskConfirm}/`, { method: 'DELETE' })
+      .then(res => {
+        if (res.ok || res.status === 204) {
+          setTasks(tasks.filter(t => t.id !== deleteTaskConfirm));
+          toast.success('Task deleted');
+        }
+      })
+      .catch(() => toast.error('Failed to delete task'))
+      .finally(() => setDeleteTaskConfirm(null));
+  }
   function handleTaskChange(event) {
     setNewTask({ ...newTask, [event.target.name]: event.target.value });
   }
@@ -118,8 +142,9 @@ export default function ContactDetailsPage({ onLogout }) {
         toast.success('Task added');
       })
       .catch((err) => {
-        if (err.title) toast.error(`Title: ${err.title[0]}`);
-        else if (err.due_date) toast.error(`Due date: ${err.due_date[0]}`);
+        if (err.title) toast.error(Array.isArray(err.title) ? err.title[0] : err.title);
+        else if (err.due_date) toast.error(Array.isArray(err.due_date) ? err.due_date[0] : err.due_date);
+        else if (err.non_field_errors) toast.error(err.non_field_errors[0]);
         else toast.error('Failed to add task');
       });
   }
@@ -140,18 +165,6 @@ export default function ContactDetailsPage({ onLogout }) {
       .catch(() => toast.error('Failed to update task'));
   }
 
-  function handleDeleteTask(taskId) {
-    if (!window.confirm('Delete this task?')) return;
-    authFetch(`/api/tasks/${taskId}/`, { method: 'DELETE' })
-      .then(res => {
-        if (res.ok || res.status === 204) {
-          setTasks(tasks.filter(t => t.id !== taskId));
-          toast.success('Task deleted');
-        }
-      })
-      .catch(() => toast.error('Failed to delete task'));
-  }
-
   const filteredTasks = tasks.filter(task => {
     if (taskStatusFilter === 'done' && !task.is_done) return false;
     if (taskStatusFilter === 'pending' && task.is_done) return false;
@@ -161,18 +174,24 @@ export default function ContactDetailsPage({ onLogout }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg">Loading contact details...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar onLogout={onLogout} />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-gray-500 text-lg">Loading contact details...</p>
+        </div>
       </div>
     );
   }
 
   if (isError || !contact) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">Failed to load contact.</p>
-          <Link to="/" className="text-blue-600 hover:underline font-semibold">Back to Contacts</Link>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar onLogout={onLogout} />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-red-500 text-lg mb-4">Failed to load contact.</p>
+            <Link to="/" className="text-blue-600 hover:underline font-semibold">Back to Contacts</Link>
+          </div>
         </div>
       </div>
     );
@@ -180,8 +199,11 @@ export default function ContactDetailsPage({ onLogout }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-8 py-5">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+      <Navbar onLogout={onLogout} />
+
+      <div className="max-w-5xl mx-auto px-8 py-6">
+        {/* Page-specific actions */}
+        <div className="flex justify-between items-center mb-6">
           <Link to="/" className="text-blue-600 hover:text-blue-800 font-semibold">
             &larr; Back to Contacts
           </Link>
@@ -196,9 +218,7 @@ export default function ContactDetailsPage({ onLogout }) {
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-6">
         {isEditing ? (
           <form onSubmit={handleEditSubmit} className="bg-white border border-yellow-200 rounded-lg p-6 mb-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Edit Contact</h2>
@@ -357,6 +377,21 @@ export default function ContactDetailsPage({ onLogout }) {
           </div>
         )}
       </div>
+      {deleteContactConfirm && (
+          <ConfirmModal
+            message="This will permanently delete the contact and all their tasks."
+            onConfirm={confirmDeleteContact}
+            onCancel={() => setDeleteContactConfirm(false)}
+          />
+        )}
+
+        {deleteTaskConfirm && (
+          <ConfirmModal
+            message="This will permanently delete this task."
+            onConfirm={confirmDeleteTask}
+            onCancel={() => setDeleteTaskConfirm(null)}
+          />
+        )}
     </div>
   );
 }
